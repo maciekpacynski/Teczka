@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teczka</title>
+<meta name="robots" content="noindex, nofollow">
+
+<style>
+  :root { --bg: #f5f4f0; --panel: #ffffff; --ink: #1d2a30; --muted: #5f6b70; --line: #e2e0d8;
+          --accent: #1d2a30; --accent-ink: #ffffff; --bad: #a3372b; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14191b; --panel: #1c2326; --ink: #e8e6e1; --muted: #9aa3a7; --line: #2e383c;
+            --accent: #e8e6e1; --accent-ink: #14191b; --bad: #e58a7c; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px;
+         background: var(--bg); color: var(--ink); font: 15px/1.45 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  form { width: 100%; max-width: 360px; background: var(--panel); border: 1px solid var(--line);
+         border-radius: 14px; padding: 28px 24px; text-align: center; }
+  h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; font-family: Georgia, "Times New Roman", serif; }
+  p { margin: 0 0 18px; color: var(--muted); font-size: 13px; }
+  input[type=password] { width: 100%; padding: 10px 12px; font: inherit; color: var(--ink); background: var(--bg);
+         border: 1px solid var(--line); border-radius: 8px; margin-bottom: 10px; }
+  label { display: flex; gap: 8px; align-items: center; justify-content: center; font-size: 14px; padding-bottom: 14px; }
+  button { width: 100%; padding: 10px; font: inherit; color: var(--accent-ink); background: var(--accent);
+           border: 1px solid var(--accent); border-radius: 8px; cursor: pointer; }
+  button:disabled { opacity: 0.6; cursor: default; }
+  .err { color: var(--bad); font-size: 13px; min-height: 18px; margin-top: 10px; }
+  form[hidden] { display: none; }
+</style>
+</head>
+<body>
+<form id="f" autocomplete="on" hidden>
+  <h1>Teczka</h1>
+  <p>Strona jest zaszyfrowana. Wpisz hasło, aby ją otworzyć.</p>
+  <input type="text" name="username" value="teczka" autocomplete="username" hidden>
+  <input type="password" id="haslo" autocomplete="current-password" placeholder="Hasło" required>
+  <label><input type="checkbox" id="pamietaj" checked> zapamiętaj na tym urządzeniu</label>
+  <button type="submit" id="btn">Otwórz</button>
+  <div class="err" id="err"></div>
+</form>
+<script>
+(() => {   // własny zakres – odszyfrowana aplikacja ma swoje zmienne
+const ENC = {"v": 1, "iter": 600000, "salt": "c4161n/XmAZZXfCG9GNGZw==", "iv": "sPig1ywuDdCyKUB1", "data": "Uxix0uGkL88/HlhijY63+BanrEM7VY7yBdUnWbfGhQ6nIjzHyryCrDsnkMINFwb4refaIwOjhSyVv0+0rdJxGmWwntkvsxnYKnOKuvSPy2X7pkNN140LSTxbp7F/b7XSlsOPQg2IrnNkqiZ6sOH5zr4QJGHfjq6HwUhMFLHt/ly2ic7NUVO9A/DI4W5K2rqA7SHv1+OWpznYFIKvlWWXHYNpl4dRwCeyPsfVR3qj0xTixdBgWoJVPEF/atrn/dbPB1OA7Kx5GlHJYl04hs6nqTQzPlqXHweIU4pX6E7+phffk/dS7seEjj9wbeBMBxuo6MBPjJk7BVLPSCc2pWucN0Xk08SaJGtkJjKIjqHVsJ6LUh7ziGfiAfRMTI+M4F034VoKv1h9snG4k1Se0EDb0/Zz0N/aXccuayKWWzsrmGVuTJkR4Mh7JGEsD9NNwskli1GYJ5peN8hyIFm1pAxkCexv9/IUUCeRw5cAWuZdqLJVJ4xc6NLfOIuXycwrcxjjeFAeCItNNMJbHAGfJMF1vk25Zzf4XJaIKTHSHs1/98yhIqNaMVuzhVlxMeEEJQvRdYuzeC1SdQHO1W8VxLGEEjfDv8rfl3XjwmIgfymvgXyBl6oI151C2/ZsuF6erjyMi77wl75wPyA9soVxkvMJYseTPZ+C42jctiS/cRDIscqF5smIF+bwSsZ6P3bOIJF+4VLis/VH33pIrxZ21LVZwe72NYmqSlqEY3CuMqTdseHFOajUYylvMz5nBx+7GVcDWbNSBT+vJ41o3+nthRSwiCA2CmS9tc2VTQ8JiwYF3gG503tJH06XhS8TgkOR52daTz6gYrf+mr/C9iikrrMOc2V4E8SfgJPdQLbSMFSXRquEcQ5gc+iD7bn+jls7W67Of5ri6gf9PNo8KHARYSjta3jnuSEWCEh4xae0NV2dpNMZu+9Vjj6RML90eJIC+7Gek3MaVqBWXZNfXnZDgkg9y1YQ2rTUcNY02whUqa29grXq1UTMi6Oaw0nmsDmibGE9NANIvyF8RVK5UZCBysLhZJIPGWey9h2rCZ5PVT4upNKxCG7Nr0YZmNdc/iegrVEEu4KTFlIpU8F+Q2unXiVBcsLQSkI3Ba6k+LS3Oa7pNhpux7de8HZvgq4u1W4c6Y7bo0tB2/qhi2KjKud9r9NiYxY5oHDql9MTVpBKTfWrclLyB5uSPnWDHTBVvG5D4eYYW4uGxEAF1Q+wC03FkSBbjcBiIJCIVDYTMxZlv3p/1mfl8VjEmqSE1wPBJsjeU3XuyoekTDsCj8c/NhzvA2Tc+WboZ5kwKfqssmNnScoNZljXkfnbP/osTnKqdj3l7SL/uoHPa5YZY9HRwKWpBGeEUrw98rtZPNZFatcMG/m8xBtiU8eX91Qz1acN5UCcH7DHhRNOXhnV0n4bk/n4HuYudK06cNNRTKgvgyLIit/Rr8WgLdDY"};   // format tworzy publish.py: PBKDF2-SHA256 + AES-256-GCM
+const KLUCZ_LS = "teczka-klucz";
+const $ = id => document.getElementById(id);
+function b64ToBytes(t) { const b = atob(t), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+function bytesToB64(buf) { let s = ''; const u = new Uint8Array(buf); for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); }
+function lsGet() { try { return JSON.parse(localStorage.getItem(KLUCZ_LS)); } catch (e) { return null; } }
+function lsSet(v) { try { localStorage.setItem(KLUCZ_LS, JSON.stringify(v)); } catch (e) {} }
+function lsDel() { try { localStorage.removeItem(KLUCZ_LS); } catch (e) {} }
+window.ZAPOMNIJ_HASLO = lsDel;   // dla aplikacji: przycisk „Zapomnij hasło na tym urządzeniu”
+
+async function kluczZHasla(haslo) {
+  const m = await crypto.subtle.importKey('raw', new TextEncoder().encode(haslo), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: b64ToBytes(ENC.salt), iterations: ENC.iter, hash: 'SHA-256' },
+                                 m, { name: 'AES-GCM', length: 256 }, true, ['decrypt']);
+}
+// Złe hasło = błąd (AES-GCM sprawdza integralność)
+async function odszyfruj(klucz) {
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64ToBytes(ENC.iv) }, klucz, b64ToBytes(ENC.data));
+  return new TextDecoder().decode(plain);
+}
+// Podmiana strony dopiero po pełnym wczytaniu ekranu hasła – wcześniej document.open() bywa ignorowane
+// i aplikacja dopisuje się do ekranu hasła zamiast go zastąpić.
+async function pokaz(html) {
+  if (document.readyState !== 'complete') await new Promise(r => window.addEventListener('load', r, { once: true }));
+  document.open(); document.write(html); document.close();
+}
+
+async function start() {
+  if (!window.crypto || !crypto.subtle) {
+    $('f').hidden = false; $('btn').disabled = true;
+    $('err').textContent = 'Ta przeglądarka nie obsługuje odszyfrowania (wymagane HTTPS albo plik lokalny).';
+    return;
+  }
+  const z = lsGet();
+  if (z && z.salt === ENC.salt) {
+    try {
+      await pokaz(await odszyfruj(await crypto.subtle.importKey('raw', b64ToBytes(z.key), { name: 'AES-GCM' }, true, ['decrypt'])));
+      return;
+    } catch (e) { lsDel(); }   // hasło zmieniono przy publikacji
+  }
+  $('f').hidden = false; $('haslo').focus();
+  $('f').addEventListener('submit', async e => {
+    e.preventDefault();
+    const haslo = $('haslo').value;
+    if (!haslo) return;
+    $('btn').disabled = true; $('err').textContent = 'Sprawdzam…';
+    let html, klucz;
+    try {
+      klucz = await kluczZHasla(haslo);
+      html = await odszyfruj(klucz);
+    } catch (err) {
+      $('err').textContent = 'Nieprawidłowe hasło.'; $('haslo').select(); $('btn').disabled = false;
+      return;
+    }
+    if ($('pamietaj').checked) lsSet({ salt: ENC.salt, key: bytesToB64(await crypto.subtle.exportKey('raw', klucz)) });
+    await pokaz(html);
+  });
+}
+start();
+})();
+</script>
+</body>
+</html>
